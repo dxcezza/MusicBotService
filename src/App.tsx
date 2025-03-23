@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Search, Music2, Download, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Loader2, AudioWaveform as Waveform } from 'lucide-react';
+import { Search, Music2, Download, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Loader2, AudioWaveform as Waveform, RotateCcw } from 'lucide-react';
 import WaveSurfer from 'wavesurfer.js';
+import { useGesture } from '@use-gesture/react';
 
 interface Track {
   videoId: string;
@@ -14,6 +15,19 @@ interface EqualizerBand {
   gain: number;
 }
 
+const DEFAULT_EQUALIZER_BANDS: EqualizerBand[] = [
+  { frequency: 32, gain: 0 },
+  { frequency: 64, gain: 0 },
+  { frequency: 125, gain: 0 },
+  { frequency: 250, gain: 0 },
+  { frequency: 500, gain: 0 },
+  { frequency: 1000, gain: 0 },
+  { frequency: 2000, gain: 0 },
+  { frequency: 4000, gain: 0 },
+  { frequency: 8000, gain: 0 },
+  { frequency: 16000, gain: 0 },
+];
+
 function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [tracks, setTracks] = useState<Track[]>([]);
@@ -26,26 +40,49 @@ function App() {
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
   const [showEqualizer, setShowEqualizer] = useState(false);
+  const [equalizerBands, setEqualizerBands] = useState<EqualizerBand[]>(DEFAULT_EQUALIZER_BANDS);
+  
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
   const equalizerNodesRef = useRef<BiquadFilterNode[]>([]);
   const waveformRef = useRef<WaveSurfer | null>(null);
   const waveformContainerRef = useRef<HTMLDivElement>(null);
+  const playerRef = useRef<HTMLDivElement>(null);
   const isAudioInitialized = useRef<boolean>(false);
+  const volumeControlRef = useRef<HTMLDivElement>(null);
 
-  const [equalizerBands, setEqualizerBands] = useState<EqualizerBand[]>([
-    { frequency: 32, gain: 0 },
-    { frequency: 64, gain: 0 },
-    { frequency: 125, gain: 0 },
-    { frequency: 250, gain: 0 },
-    { frequency: 500, gain: 0 },
-    { frequency: 1000, gain: 0 },
-    { frequency: 2000, gain: 0 },
-    { frequency: 4000, gain: 0 },
-    { frequency: 8000, gain: 0 },
-    { frequency: 16000, gain: 0 },
-  ]);
+  // Prevent scroll when adjusting equalizer sliders
+  useEffect(() => {
+    const preventScroll = (e: TouchEvent) => {
+      if (showEqualizer) {
+        e.preventDefault();
+      }
+    };
+
+    document.addEventListener('touchmove', preventScroll, { passive: false });
+    return () => {
+      document.removeEventListener('touchmove', preventScroll);
+    };
+  }, [showEqualizer]);
+
+  // Handle swipe gesture for equalizer
+  const bind = useGesture(
+    {
+      onDrag: ({ movement: [mx, my], direction: [dx, dy] }) => { // Переименовали аргументы
+        if (Math.abs(my) > 50) {
+          setShowEqualizer(dy < 0); // Используем dy вместо dy (избегаем повторений)
+        }
+      },
+    },
+    {
+      drag: {
+        axis: 'y', // Ограничиваем движение по вертикальной оси
+        filterTaps: true, // Игнорируем короткие тапы
+        threshold: 10, // Минимальное расстояние для начала drag-жеста
+      },
+    }
+  );
 
   useEffect(() => {
     if (waveformContainerRef.current && audioRef.current) {
@@ -93,6 +130,13 @@ function App() {
       
       isAudioInitialized.current = true;
     }
+  };
+
+  const resetEqualizer = () => {
+    setEqualizerBands(DEFAULT_EQUALIZER_BANDS);
+    equalizerNodesRef.current.forEach((node, index) => {
+      node.gain.value = 0;
+    });
   };
 
   const handleSearch = async () => {
@@ -179,6 +223,7 @@ function App() {
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    e.stopPropagation();
     const value = parseFloat(e.target.value);
     setVolume(value);
     if (audioRef.current) {
@@ -325,7 +370,11 @@ function App() {
 
       {/* Fixed Player */}
       {currentTrack && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10">
+        <div 
+          ref={playerRef}
+          {...bind()}
+          className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10 touch-none"
+        >
           <div className="max-w-6xl mx-auto p-4">
             <div className="flex flex-col gap-4">
               {/* Player Controls */}
@@ -385,7 +434,7 @@ function App() {
                 </div>
                 
                 {/* Volume Control */}
-                <div className="flex items-center gap-2 w-full sm:w-32">
+                <div ref={volumeControlRef} className="flex items-center gap-2 w-full sm:w-32 touch-none">
                   <button onClick={toggleMute} className="text-gray-400 hover:text-white transition-colors">
                     {isMuted ? (
                       <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -405,14 +454,25 @@ function App() {
                 </div>
               </div>
 
-              {/* Equalizer Toggle */}
-              <button
-                onClick={() => setShowEqualizer(!showEqualizer)}
-                className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
-              >
-                <Waveform className="w-4 h-4 sm:w-5 sm:h-5" />
-                {showEqualizer ? 'Скрыть эквалайзер' : 'Показать эквалайзер'}
-              </button>
+              {/* Equalizer Controls */}
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => setShowEqualizer(!showEqualizer)}
+                  className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                >
+                  <Waveform className="w-4 h-4 sm:w-5 sm:h-5" />
+                  {showEqualizer ? 'Скрыть эквалайзер' : 'Показать эквалайзер'}
+                </button>
+                {showEqualizer && (
+                  <button
+                    onClick={resetEqualizer}
+                    className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Сбросить
+                  </button>
+                )}
+              </div>
 
               {/* Equalizer */}
               {showEqualizer && (
@@ -421,17 +481,17 @@ function App() {
                     {equalizerBands.map((band, index) => (
                       <div key={band.frequency} className="flex flex-col items-center gap-2">
                         <input
-                        type="range"
-                        orient="vertical"
-                        min="-12"
-                        max="12"
-                        step="0.1"
-                        value={band.gain}
-                        onChange={(e) => handleEqualizerChange(index, parseFloat(e.target.value))}
-                        className="vertical-slider h-48 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
-                                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
-                                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
-                        />
+                          type="range"
+                          min="-12"
+                          max="12"
+                          step="0.1"
+                          value={band.gain}
+                          onChange={(e) => handleEqualizerChange(index, parseFloat(e.target.value))}
+                          className="vertical-slider h-48 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                          [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                          [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
+                          onTouchMove={(e) => e.stopPropagation()}
+                          />
                         <span className="text-xs text-gray-400">{formatFrequency(band.frequency)}</span>
                       </div>
                     ))}
