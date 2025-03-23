@@ -15,6 +15,8 @@ export default defineConfig({
     },
   },
   build: {
+    rollupOptions: {
+      external: ['react-use-gesture']},
     outDir: 'dist',
     sourcemap: false,
     minify: true,
