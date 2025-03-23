@@ -422,8 +422,10 @@ function App() {
                         step="0.1"
                         value={band.gain}
                         onChange={(e) => handleEqualizerChange(index, parseFloat(e.target.value))}
-                        className="h-24 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
-                      />
+                        className="vertical-slider h-48 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer 
+                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
+                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
+                        />
                       <span className="text-xs text-gray-400">{formatFrequency(band.frequency)}</span>
                     </div>
                   ))}
