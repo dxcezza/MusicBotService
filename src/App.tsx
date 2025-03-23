@@ -25,6 +25,7 @@ function App() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
+  const [showEqualizer, setShowEqualizer] = useState(false);
   const audioRef = useRef<HTMLAudioElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null);
@@ -55,7 +56,7 @@ function App() {
         cursorColor: '#4c1d95',
         barWidth: 2,
         barGap: 1,
-        height: 50,
+        height: 40,
         normalize: true,
         mediaControls: true,
       });
@@ -73,7 +74,6 @@ function App() {
       audioContextRef.current = new AudioContext();
       sourceNodeRef.current = audioContextRef.current.createMediaElementSource(audioRef.current);
 
-      // Create equalizer nodes
       equalizerNodesRef.current = equalizerBands.map(band => {
         const filter = audioContextRef.current!.createBiquadFilter();
         filter.type = band.frequency <= 32 ? 'lowshelf' : band.frequency >= 16000 ? 'highshelf' : 'peaking';
@@ -83,7 +83,6 @@ function App() {
         return filter;
       });
 
-      // Connect nodes in series
       sourceNodeRef.current.connect(equalizerNodesRef.current[0]);
       equalizerNodesRef.current.forEach((node, i) => {
         if (i < equalizerNodesRef.current.length - 1) {
@@ -124,7 +123,6 @@ function App() {
     setAudioUrl(audioUrl);
     setIsPlaying(true);
 
-    // Initialize audio context when first playing
     initializeAudioContext();
 
     if (waveformRef.current) {
@@ -134,7 +132,6 @@ function App() {
       });
     }
 
-    // Resume AudioContext if it was suspended
     if (audioContextRef.current?.state === 'suspended') {
       await audioContextRef.current.resume();
     }
@@ -146,10 +143,8 @@ function App() {
 
   const togglePlay = async () => {
     if (audioRef.current) {
-      // Initialize audio context if needed
       initializeAudioContext();
 
-      // Resume AudioContext if it was suspended
       if (audioContextRef.current?.state === 'suspended') {
         await audioContextRef.current.resume();
       }
@@ -241,11 +236,11 @@ function App() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900 to-gray-900 text-white">
       {/* Header */}
-      <header className="px-6 py-8 bg-black/20">
+      <header className="px-4 sm:px-6 py-6 sm:py-8 bg-black/20">
         <div className="max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <Music2 className="w-8 h-8 text-purple-400" />
-            <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
+          <div className="flex items-center gap-3 mb-6 sm:mb-8">
+            <Music2 className="w-6 h-6 sm:w-8 sm:h-8 text-purple-400" />
+            <h1 className="text-2xl sm:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-400 to-pink-400">
               Аудиобиблиотека
             </h1>
           </div>
@@ -258,13 +253,13 @@ function App() {
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="Поиск треков..."
-              className="w-full px-6 py-4 bg-white/5 backdrop-blur-lg rounded-2xl pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all border border-white/10"
+              className="w-full px-4 sm:px-6 py-3 sm:py-4 bg-white/5 backdrop-blur-lg rounded-xl pl-10 sm:pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all border border-white/10"
             />
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
+            <Search className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4 sm:w-5 sm:h-5" />
             <button
               onClick={handleSearch}
               disabled={isLoading}
-              className="absolute right-4 top-1/2 -translate-y-1/2 bg-purple-500 hover:bg-purple-600 px-4 py-2 rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-purple-500 hover:bg-purple-600 px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 text-sm sm:text-base"
             >
               {isLoading ? (
                 <>
@@ -280,16 +275,16 @@ function App() {
       </header>
 
       {/* Main Content */}
-      <main className="px-6 py-8 pb-32">
+      <main className="px-4 sm:px-6 py-6 sm:py-8 pb-32">
         <div className="max-w-6xl mx-auto">
           {/* Tracks Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
             {tracks.map((track) => (
               <div
                 key={track.videoId}
-                className="bg-white/5 backdrop-blur-lg rounded-2xl p-4 hover:bg-white/10 transition-all group border border-white/10"
+                className="bg-white/5 backdrop-blur-lg rounded-xl p-4 hover:bg-white/10 transition-all group border border-white/10"
               >
-                <div className="relative aspect-square mb-4 overflow-hidden rounded-xl">
+                <div className="relative aspect-square mb-4 overflow-hidden rounded-lg">
                   <img
                     src={track.thumbnail}
                     alt={track.title}
@@ -303,21 +298,21 @@ function App() {
                   </button>
                 </div>
                 <div className="space-y-2">
-                  <h3 className="font-semibold text-lg truncate">{track.title}</h3>
-                  <p className="text-gray-400 truncate">{track.artist}</p>
+                  <h3 className="font-semibold text-base sm:text-lg truncate">{track.title}</h3>
+                  <p className="text-gray-400 text-sm sm:text-base truncate">{track.artist}</p>
                   <div className="flex justify-between items-center pt-2">
                     <button
                       onClick={() => playTrack(track)}
-                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2"
+                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2 text-sm sm:text-base"
                     >
-                      <Play className="w-5 h-5" />
+                      <Play className="w-4 h-4 sm:w-5 sm:h-5" />
                       Слушать
                     </button>
                     <button 
                       onClick={() => downloadTrack(track)}
-                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2"
+                      className="text-purple-400 hover:text-purple-300 transition-colors flex items-center gap-2 text-sm sm:text-base"
                     >
-                      <Download className="w-5 h-5" />
+                      <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                       Скачать
                     </button>
                   </div>
@@ -328,48 +323,51 @@ function App() {
         </div>
       </main>
 
-      {/* Custom Audio Player */}
+      {/* Fixed Player */}
       {currentTrack && (
         <div className="fixed bottom-0 left-0 right-0 bg-black/95 backdrop-blur-xl border-t border-white/10">
           <div className="max-w-6xl mx-auto p-4">
             <div className="flex flex-col gap-4">
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-4 flex-1">
+              {/* Player Controls */}
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                {/* Track Info */}
+                <div className="flex items-center gap-4 w-full sm:w-auto">
                   <img
                     src={currentTrack.thumbnail}
                     alt={currentTrack.title}
-                    className="w-16 h-16 rounded-xl object-cover shadow-lg"
+                    className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg object-cover shadow-lg"
                   />
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold truncate">{currentTrack.title}</h3>
-                    <p className="text-gray-400 truncate">{currentTrack.artist}</p>
+                    <h3 className="font-semibold text-sm sm:text-base truncate">{currentTrack.title}</h3>
+                    <p className="text-gray-400 text-xs sm:text-sm truncate">{currentTrack.artist}</p>
                   </div>
                 </div>
                 
-                <div className="flex-1 max-w-2xl">
+                {/* Playback Controls */}
+                <div className="flex-1 w-full">
                   <div className="flex items-center justify-center gap-4 mb-2">
                     <button className="text-gray-400 hover:text-white transition-colors">
-                      <SkipBack className="w-5 h-5" />
+                      <SkipBack className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                     <button
                       onClick={togglePlay}
-                      className="w-10 h-10 rounded-full bg-purple-500 hover:bg-purple-600 transition-colors flex items-center justify-center"
+                      className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-purple-500 hover:bg-purple-600 transition-colors flex items-center justify-center"
                     >
                       {isPlaying ? (
-                        <Pause className="w-5 h-5" />
+                        <Pause className="w-4 h-4 sm:w-5 sm:h-5" />
                       ) : (
-                        <Play className="w-5 h-5" />
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5" />
                       )}
                     </button>
                     <button className="text-gray-400 hover:text-white transition-colors">
-                      <SkipForward className="w-5 h-5" />
+                      <SkipForward className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
                   </div>
                   
                   <div ref={waveformContainerRef} className="mb-2" />
                   
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm text-gray-400 w-12 text-right">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <span className="text-xs sm:text-sm text-gray-400 w-8 sm:w-12 text-right">
                       {formatTime(currentTime)}
                     </span>
                     <input
@@ -380,18 +378,19 @@ function App() {
                       onChange={handleSeek}
                       className="flex-1 h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
                     />
-                    <span className="text-sm text-gray-400 w-12">
+                    <span className="text-xs sm:text-sm text-gray-400 w-8 sm:w-12">
                       {formatTime(duration)}
                     </span>
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-2 w-32">
+                {/* Volume Control */}
+                <div className="flex items-center gap-2 w-full sm:w-32">
                   <button onClick={toggleMute} className="text-gray-400 hover:text-white transition-colors">
                     {isMuted ? (
-                      <VolumeX className="w-5 h-5" />
+                      <VolumeX className="w-4 h-4 sm:w-5 sm:h-5" />
                     ) : (
-                      <Volume2 className="w-5 h-5" />
+                      <Volume2 className="w-4 h-4 sm:w-5 sm:h-5" />
                     )}
                   </button>
                   <input
@@ -406,31 +405,39 @@ function App() {
                 </div>
               </div>
 
+              {/* Equalizer Toggle */}
+              <button
+                onClick={() => setShowEqualizer(!showEqualizer)}
+                className="flex items-center gap-2 text-sm text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                <Waveform className="w-4 h-4 sm:w-5 sm:h-5" />
+                {showEqualizer ? 'Скрыть эквалайзер' : 'Показать эквалайзер'}
+              </button>
+
               {/* Equalizer */}
-              <div className="pt-4 border-t border-white/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Waveform className="w-5 h-5 text-purple-400" />
-                  <h4 className="font-semibold">Эквалайзер</h4>
-                </div>
-                <div className="grid grid-cols-10 gap-2">
-                  {equalizerBands.map((band, index) => (
-                    <div key={band.frequency} className="flex flex-col items-center gap-2">
-                      <input
+              {showEqualizer && (
+                <div className="pt-4 border-t border-white/10">
+                  <div className="grid grid-cols-5 sm:grid-cols-10 gap-2">
+                    {equalizerBands.map((band, index) => (
+                      <div key={band.frequency} className="flex flex-col items-center gap-2">
+                        <input
                         type="range"
+                        orient="vertical"
                         min="-12"
                         max="12"
                         step="0.1"
                         value={band.gain}
                         onChange={(e) => handleEqualizerChange(index, parseFloat(e.target.value))}
-                        className="vertical-slider h-48 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer 
-                        [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4 
-                        [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
+                        className="vertical-slider h-48 w-2 bg-gray-600 rounded-lg appearance-none cursor-pointer
+                                   [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:h-4
+                                   [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-purple-500"
                         />
-                      <span className="text-xs text-gray-400">{formatFrequency(band.frequency)}</span>
-                    </div>
-                  ))}
+                        <span className="text-xs text-gray-400">{formatFrequency(band.frequency)}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
             </div>
             
             <audio
