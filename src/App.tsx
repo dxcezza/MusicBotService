@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Search, Music2, Download, Play, Pause, Volume2, VolumeX, SkipBack, SkipForward, Loader2, AudioWaveform as Waveform, RotateCcw } from 'lucide-react';
 import WaveSurfer from 'wavesurfer.js';
-import { useGesture } from '@use-gesture/react';
+import { useGesture } from 'react-use-gesture';
 
 interface Track {
   videoId: string;
